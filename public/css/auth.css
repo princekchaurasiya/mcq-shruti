@@ -1,0 +1,220 @@
+/* Authentication-specific styling */
+
+body.auth-page {
+    background-color: #f8fafc;
+    background-image: linear-gradient(135deg, #f5f7fa 0%, #e4edf8 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+.auth-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+    padding: 3rem;
+    width: 100%;
+    margin: 1rem auto;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.auth-logo {
+    margin-bottom: 2rem;
+}
+
+.auth-logo img, .auth-logo svg {
+    height: 5rem;
+    width: auto;
+    transition: transform 0.3s ease;
+}
+
+.auth-logo img:hover, .auth-logo svg:hover {
+    transform: scale(1.05);
+}
+
+.form-group {
+    margin-bottom: 1.8rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+    font-size: 1rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.9rem 1.2rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1.1rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    background-color: #f9fafb;
+}
+
+.form-control:focus {
+    border-color: #3b82f6;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+}
+
+/* Login button styling */
+.login-btn {
+    display: block;
+    width: 100%;
+    padding: 1rem 1.5rem;
+    background-color: #3b82f6;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);
+    margin-top: 2rem;
+}
+
+.login-btn:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 10px rgba(59, 130, 246, 0.3);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+.login-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4);
+}
+
+.auth-link {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 0.2s;
+    font-weight: 500;
+}
+
+.auth-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.auth-separator {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+}
+
+.auth-separator::before,
+.auth-separator::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.auth-separator span {
+    padding: 0 0.75rem;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+/* Checkbox styling */
+.form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.form-check-input {
+    margin-right: 0.5rem;
+    cursor: pointer;
+    width: 1.2rem;
+    height: 1.2rem;
+}
+
+.form-check-label {
+    cursor: pointer;
+    font-size: 1rem;
+    color: #4b5563;
+}
+
+/* Forgot password link */
+.forgot-password {
+    display: block;
+    text-align: right;
+    font-size: 0.95rem;
+    margin-top: -0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Error messages */
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc2626;
+}
+
+/* Welcome text styling */
+h2.auth-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+p.auth-subtitle {
+    font-size: 1.1rem;
+    color: #6b7280;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .auth-card {
+        padding: 2rem;
+    }
+    
+    h2.auth-title {
+        font-size: 1.75rem;
+    }
+    
+    p.auth-subtitle {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .auth-card {
+        padding: 1.5rem;
+        margin: 0.5rem;
+    }
+    
+    .form-control {
+        padding: 0.75rem 1rem;
+    }
+    
+    .login-btn {
+        padding: 0.75rem 1.25rem;
+    }
+} 

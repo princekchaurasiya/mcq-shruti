@@ -39,20 +39,10 @@ class CheckRole
                 'required_role' => $role
             ]);
 
-            // Get the appropriate dashboard route based on user's actual role
-            $dashboardRoute = match($user->role) {
-                'admin' => 'admin.dashboard',
-                'teacher' => 'teacher.dashboard',
-                'student' => 'student.dashboard',
-                default => 'home'
-            };
-
-            Log::info('Redirecting user to appropriate dashboard', [
-                'route' => $dashboardRoute
-            ]);
-
-            return redirect()->route($dashboardRoute)
-                ->with('error', 'Unauthorized access. Redirected to your dashboard.');
+            // Return 403 Forbidden for unauthorized access
+            return response()->json([
+                'message' => 'Unauthorized access. You do not have the required role.'
+            ], 403);
         }
 
         // TEMPORARY FIX: Comment out the role-specific record check to let users log in

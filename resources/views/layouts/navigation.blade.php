@@ -44,7 +44,7 @@
                         <x-nav-link :href="route('tests.available')" :active="request()->routeIs('tests.available')">
                             {{ __('Available Tests') }}
                         </x-nav-link>
-                        <x-nav-link :href="route('my-results')" :active="request()->routeIs('my-results')">
+                        <x-nav-link :href="route('results.index')" :active="request()->routeIs('results.index')">
                             {{ __('My Results') }}
                         </x-nav-link>
                     @endif
@@ -131,7 +131,7 @@
                 <x-responsive-nav-link :href="route('tests.available')" :active="request()->routeIs('tests.available')">
                     {{ __('Available Tests') }}
                 </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('my-results')" :active="request()->routeIs('my-results')">
+                <x-responsive-nav-link :href="route('results.index')" :active="request()->routeIs('results.index')">
                     {{ __('My Results') }}
                 </x-responsive-nav-link>
             @endif

@@ -12,9 +12,10 @@ test('profile page is displayed', function () {
 
     $response
         ->assertOk()
-        ->assertSeeVolt('profile.update-profile-information-form')
-        ->assertSeeVolt('profile.update-password-form')
-        ->assertSeeVolt('profile.delete-user-form');
+        ->assertViewIs('profile.edit')
+        ->assertSee('Profile Information')
+        ->assertSee('Update Password')
+        ->assertSee('Delete Account');
 });
 
 test('profile information can be updated', function () {
@@ -22,14 +23,14 @@ test('profile information can be updated', function () {
 
     $this->actingAs($user);
 
-    $component = Volt::test('profile.update-profile-information-form')
-        ->set('name', 'Test User')
-        ->set('email', 'test@example.com')
-        ->call('updateProfileInformation');
+    $response = $this->patch('/profile', [
+        'name' => 'Test User',
+        'email' => 'test@example.com',
+    ]);
 
-    $component
-        ->assertHasNoErrors()
-        ->assertNoRedirect();
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/profile');
 
     $user->refresh();
 
@@ -43,14 +44,14 @@ test('email verification status is unchanged when the email address is unchanged
 
     $this->actingAs($user);
 
-    $component = Volt::test('profile.update-profile-information-form')
-        ->set('name', 'Test User')
-        ->set('email', $user->email)
-        ->call('updateProfileInformation');
+    $response = $this->patch('/profile', [
+        'name' => 'Test User',
+        'email' => $user->email,
+    ]);
 
-    $component
-        ->assertHasNoErrors()
-        ->assertNoRedirect();
+    $response
+        ->assertSessionHasNoErrors()
+        ->assertRedirect('/profile');
 
     $this->assertNotNull($user->refresh()->email_verified_at);
 });
@@ -60,12 +61,12 @@ test('user can delete their account', function () {
 
     $this->actingAs($user);
 
-    $component = Volt::test('profile.delete-user-form')
-        ->set('password', 'password')
-        ->call('deleteUser');
+    $response = $this->delete('/profile', [
+        'password' => 'password',
+    ]);
 
-    $component
-        ->assertHasNoErrors()
+    $response
+        ->assertSessionHasNoErrors()
         ->assertRedirect('/');
 
     $this->assertGuest();
@@ -77,13 +78,12 @@ test('correct password must be provided to delete account', function () {
 
     $this->actingAs($user);
 
-    $component = Volt::test('profile.delete-user-form')
-        ->set('password', 'wrong-password')
-        ->call('deleteUser');
+    $response = $this->delete('/profile', [
+        'password' => 'wrong-password',
+    ]);
 
-    $component
-        ->assertHasErrors('password')
-        ->assertNoRedirect();
+    $response
+        ->assertSessionHasErrors('password');
 
     $this->assertNotNull($user->fresh());
 });

@@ -10,6 +10,9 @@ use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\ResultController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\TeacherResultController;
+use App\Http\Controllers\AdminDashboardController;
+use App\Http\Controllers\StudentDashboardController;
+use App\Http\Controllers\TeacherDashboardController;
 use App\Http\Middleware\CheckRole;
 
 /*
@@ -37,20 +40,21 @@ Route::middleware('auth')->group(function () {
 
 // Admin routes
 Route::middleware(['auth', CheckRole::class . ':admin'])->prefix('admin')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('admin.dashboard');
-    })->name('admin.dashboard');
+    Route::get('/dashboard', [AdminDashboardController::class, 'dashboard'])->name('admin.dashboard');
     
     Route::resource('subjects', SubjectController::class);
     Route::resource('teachers', TeacherController::class);
     Route::resource('students', StudentController::class);
+    
+    // Debug route - only available in non-production environments
+    if (!app()->environment('production')) {
+        Route::get('/results/{result}/seed-data', [ResultController::class, 'seedTestData'])->name('admin.results.seed-data');
+    }
 });
 
 // Teacher routes
 Route::middleware(['auth', CheckRole::class . ':teacher'])->prefix('teacher')->group(function () {
-    Route::get('/dashboard', function () {
-        return view('teacher.dashboard');
-    })->name('teacher.dashboard');
+    Route::get('/dashboard', [TeacherDashboardController::class, 'dashboard'])->name('teacher.dashboard');
     
     // MCQ Test routes
     Route::get('/mcq-tests', [MCQTestController::class, 'index'])->name('mcq-tests.index');
@@ -78,11 +82,16 @@ Route::middleware(['auth', CheckRole::class . ':teacher'])->prefix('teacher')->g
         Route::get('/results/{test}', [MCQTestController::class, 'getResults'])->name('results');
         Route::get('/student-attempt/{id}', [TeacherResultController::class, 'show'])->name('student.attempt.show');
     });
+    
+    // Debug route - only available in non-production environments
+    if (!app()->environment('production')) {
+        Route::get('/results/{result}/seed-data', [ResultController::class, 'seedTestData'])->name('teacher.results.seed-data');
+    }
 });
 
 // Student routes
 Route::middleware(['auth', CheckRole::class . ':student'])->prefix('student')->group(function () {
-    Route::get('/dashboard', [MCQTestController::class, 'index'])->name('student.dashboard');
+    Route::get('/dashboard', [StudentDashboardController::class, 'dashboard'])->name('student.dashboard');
     
     // Test taking routes
     Route::get('/available-tests', [MCQTestController::class, 'availableTestsPage'])->name('tests.available');
@@ -91,8 +100,26 @@ Route::middleware(['auth', CheckRole::class . ':student'])->prefix('student')->g
     Route::post('/test/update-review-status', [MCQTestController::class, 'updateReviewStatus'])->name('test.update-review-status');
     
     // Results routes
-    Route::get('/results', [ResultController::class, 'index'])->name('results.index');
-    Route::get('/results/{result}', [ResultController::class, 'show'])->name('results.show');
+    Route::get('/results', [ResultController::class, 'index'])->name('student.results.index');
+    Route::get('/results/{result}', [ResultController::class, 'show'])->name('student.results.show');
+    
+    // Debug route - only available in non-production environments
+    if (!app()->environment('production')) {
+        Route::get('/results/{result}/seed-data', [ResultController::class, 'seedTestData'])->name('results.seed-data');
+    }
+});
+
+// Test routes for exception handling
+Route::get('/test-error', function () {
+    throw new Exception('This is a test exception');
+});
+
+Route::get('/test-model-error', function () {
+    throw new \Illuminate\Database\Eloquent\ModelNotFoundException('User not found');
+});
+
+Route::get('/test-db-error', function () {
+    throw new \Illuminate\Database\QueryException('SELECT * FROM non_existent_table', [], new \Exception('Database error test'));
 });
 
 // Include authentication routes

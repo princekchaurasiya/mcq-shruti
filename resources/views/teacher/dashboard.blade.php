@@ -123,222 +123,193 @@
                         <a href="{{ route('mcq-tests.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                     <div class="card-body p-0">
-                        @php
-                            $recentTests = $teacher ? $teacher->mcqTests()->with(['subject', 'questions', 'attempts'])->latest()->take(5)->get() : collect([]);
-                        @endphp
-                        @foreach($recentTests as $test)
-                            <div class="card mb-3 mx-3 mt-3 test-card 
-                                @if($test->end_time < now()) test-ended @elseif(!$test->is_active) test-inactive @endif">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="card-title">
-                                            <a href="{{ route('mcq-tests.show', $test) }}" class="text-decoration-none">
-                                                {{ $test->title }}
-                                            </a>
-                                        </h5>
-                                        <span class="badge 
-                                            @if($test->end_time < now()) 
-                                                bg-danger
-                                            @elseif($test->start_time > now())
-                                                bg-info
-                                            @elseif($test->is_active)
-                                                bg-success
-                                            @else
-                                                bg-secondary
-                                            @endif
-                                            ">
-                                            @if($test->end_time < now())
-                                                Ended
-                                            @elseif($test->start_time > now())
-                                                Scheduled
-                                            @elseif($test->is_active)
-                                                Active
-                                            @else
-                                                Inactive
-                                            @endif
-                                        </span>
-                                    </div>
-                                    <p class="card-text text-muted small">Created {{ $test->created_at->diffForHumans() }}</p>
-                                    
-                                    <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <p class="mb-1"><i class="bi bi-stopwatch"></i> <strong>Duration:</strong> {{ $test->duration_minutes }} min</p>
-                                            <p class="mb-1"><i class="bi bi-book"></i> <strong>Subject:</strong> {{ $test->subject->name ?? 'N/A' }}</p>
+                        <div class="test-list" style="max-height: 650px; overflow-y: auto;">
+                            @foreach($tests as $test)
+                                <div class="card mb-3 mx-3 mt-3 test-card 
+                                    @if($test->end_time < now()) test-ended @elseif(!$test->is_active) test-inactive @endif">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="card-title">
+                                                <a href="{{ route('mcq-tests.show', $test) }}" class="text-decoration-none">
+                                                    {{ $test->title }}
+                                                </a>
+                                            </h5>
+                                            <span class="badge 
+                                                @if($test->end_time < now()) 
+                                                    bg-danger
+                                                @elseif($test->start_time > now())
+                                                    bg-info
+                                                @elseif($test->is_active)
+                                                    bg-success
+                                                @else
+                                                    bg-secondary
+                                                @endif
+                                                ">
+                                                @if($test->end_time < now())
+                                                    Ended
+                                                @elseif($test->start_time > now())
+                                                    Scheduled
+                                                @elseif($test->is_active)
+                                                    Active
+                                                @else
+                                                    Inactive
+                                                @endif
+                                            </span>
                                         </div>
-                                        <div class="col-md-6">
-                                            <p class="mb-1"><i class="bi bi-question-circle"></i> <strong>Questions:</strong> {{ $test->questions->count() }}</p>
-                                            <p class="mb-1"><i class="bi bi-people"></i> <strong>Attempts:</strong> {{ $test->attempts->count() }}</p>
+                                        <p class="card-text text-muted small">Created {{ $test->created_at->diffForHumans() }}</p>
+                                        
+                                        <div class="row mt-2">
+                                            <div class="col-md-6">
+                                                <p class="mb-1"><i class="bi bi-stopwatch"></i> <strong>Duration:</strong> {{ $test->duration_minutes }} min</p>
+                                                <p class="mb-1"><i class="bi bi-book"></i> <strong>Subject:</strong> {{ $test->subject->name ?? 'N/A' }}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p class="mb-1"><i class="bi bi-question-circle"></i> <strong>Questions:</strong> {{ $test->questions->count() }}</p>
+                                                <p class="mb-1"><i class="bi bi-people"></i> <strong>Attempts:</strong> {{ $test->attempts->count() }}</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                    
-                                    <div class="test-timeline mt-3 mb-3">
-                                        <div class="progress" style="height: 4px;">
-                                            @php
-                                                $now = now();
-                                                $totalDuration = $test->end_time->diffInSeconds($test->start_time);
-                                                $elapsed = $now->diffInSeconds($test->start_time);
-                                                $progress = $totalDuration > 0 ? min(100, max(0, ($elapsed / $totalDuration) * 100)) : 0;
-                                                
-                                                // Different progress bar colors based on status
-                                                $progressClass = 'bg-primary';
-                                                if ($test->end_time < $now) {
-                                                    $progressClass = 'bg-danger';
-                                                    $progress = 100;
-                                                } elseif ($test->start_time > $now) {
-                                                    $progressClass = 'bg-info';
-                                                    $progress = 0;
-                                                } elseif (!$test->is_active) {
-                                                    $progressClass = 'bg-secondary';
-                                                }
-                                            @endphp
-                                            <div class="progress-bar {{ $progressClass }}" role="progressbar" 
-                                                style="width: {{ $progress }}%" 
-                                                aria-valuenow="{{ $progress }}" 
-                                                aria-valuemin="0" aria-valuemax="100"></div>
-                                        </div>
-                                        <div class="d-flex justify-content-between mt-1">
-                                            <small class="text-{{ $now->gte($test->start_time) ? 'success' : 'muted' }}">
-                                                {{ $test->start_time->format('M d, Y h:i A') }}
-                                            </small>
-                                            <small class="text-{{ $now->gte($test->end_time) ? 'danger' : 'muted' }}">
-                                                {{ $test->end_time->format('M d, Y h:i A') }}
-                                            </small>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3 d-flex justify-content-between">
-                                        <div>
-                                            @if($test->attempts->count() > 0)
-                                                <small class="d-flex align-items-center">
-                                                    <span class="me-2">{{ $test->attempts->count() }} students attempted</span>
-                                                    <div class="student-avatars d-flex">
-                                                        @foreach($test->attempts->take(3) as $attempt)
-                                                            <div class="avatar-circle me-1" data-bs-toggle="tooltip" title="{{ $attempt->user->name ?? 'Student' }}">
-                                                                {{ substr($attempt->user->name ?? 'S', 0, 1) }}
-                                                            </div>
-                                                        @endforeach
-                                                        @if($test->attempts->count() > 3)
-                                                            <div class="avatar-circle bg-secondary me-1" data-bs-toggle="tooltip" title="{{ $test->attempts->count() - 3 }} more">+{{ $test->attempts->count() - 3 }}</div>
-                                                        @endif
-                                                    </div>
+                                        
+                                        <div class="test-timeline mt-3 mb-3">
+                                            <div class="progress" style="height: 4px;">
+                                                @php
+                                                    $now = now();
+                                                    $totalDuration = $test->end_time->diffInSeconds($test->start_time);
+                                                    $elapsed = $now->diffInSeconds($test->start_time);
+                                                    $progress = $totalDuration > 0 ? min(100, max(0, ($elapsed / $totalDuration) * 100)) : 0;
+                                                    
+                                                    // Different progress bar colors based on status
+                                                    $progressClass = 'bg-primary';
+                                                    if ($test->end_time < $now) {
+                                                        $progressClass = 'bg-danger';
+                                                        $progress = 100;
+                                                    } elseif ($test->start_time > $now) {
+                                                        $progressClass = 'bg-info';
+                                                        $progress = 0;
+                                                    } elseif (!$test->is_active) {
+                                                        $progressClass = 'bg-secondary';
+                                                    }
+                                                @endphp
+                                                <div class="progress-bar {{ $progressClass }}" role="progressbar" 
+                                                    style="width: {{ $progress }}%" 
+                                                    aria-valuenow="{{ $progress }}" 
+                                                    aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mt-1">
+                                                <small class="text-{{ $now->gte($test->start_time) ? 'success' : 'muted' }}">
+                                                    {{ $test->start_time->format('M d, Y h:i A') }}
                                                 </small>
-                                            @else
-                                                <small class="text-muted">No attempts yet</small>
-                                            @endif
+                                                <small class="text-{{ $now->gte($test->end_time) ? 'danger' : 'muted' }}">
+                                                    {{ $test->end_time->format('M d, Y h:i A') }}
+                                                </small>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <a href="{{ route('mcq-tests.results', $test) }}" class="btn btn-sm btn-outline-info">
-                                                <i class="bi bi-bar-chart"></i> Results
-                                            </a>
-                                            <a href="{{ route('mcq-tests.edit', $test) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-pencil"></i> Edit
-                                            </a>
+                                        
+                                        <div class="mt-3 d-flex justify-content-between">
+                                            <div>
+                                                @if($test->attempts->count() > 0)
+                                                    <small class="d-flex align-items-center">
+                                                        <span class="me-2">{{ $test->attempts->count() }} students attempted</span>
+                                                        <div class="student-avatars d-flex">
+                                                            @foreach($test->attempts->take(3) as $attempt)
+                                                                <div class="avatar-circle me-1" data-bs-toggle="tooltip" title="{{ $attempt->user->name ?? 'Student' }}">
+                                                                    {{ substr($attempt->user->name ?? 'S', 0, 1) }}
+                                                                </div>
+                                                            @endforeach
+                                                            @if($test->attempts->count() > 3)
+                                                                <div class="avatar-circle bg-secondary me-1" data-bs-toggle="tooltip" title="{{ $test->attempts->count() - 3 }} more">+{{ $test->attempts->count() - 3 }}</div>
+                                                            @endif
+                                                        </div>
+                                                    </small>
+                                                @else
+                                                    <small class="text-muted">No attempts yet</small>
+                                                @endif
+                                            </div>
+                                            <div>
+                                                <a href="{{ route('mcq-tests.results', $test) }}" class="btn btn-sm btn-outline-info">
+                                                    <i class="bi bi-bar-chart"></i> Results
+                                                </a>
+                                                <a href="{{ route('mcq-tests.edit', $test) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                        @if($recentTests->isEmpty())
-                            <div class="text-center py-4">
-                                <p class="text-muted">No tests created yet.</p>
-                                <a href="{{ route('mcq-tests.create') }}" class="btn btn-sm btn-primary">
-                                    <i class="bi bi-plus-circle"></i> Create New Test
-                                </a>
-                            </div>
-                        @endif
+                            @endforeach
+                            @if($tests->isEmpty())
+                                <div class="text-center py-4">
+                                    <p class="text-muted">No tests created yet.</p>
+                                    <a href="{{ route('mcq-tests.create') }}" class="btn btn-sm btn-primary">
+                                        <i class="bi bi-plus-circle"></i> Create New Test
+                                    </a>
+                                </div>
+                            @endif
+                        </div>
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-center py-3">
+                            {{ $tests->appends(['results_page' => request()->results_page])->links() }}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Recent Test Attempts -->
+            <!-- Recent Results -->
             <div class="col-lg-6 mb-4">
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                        <h6 class="m-0 font-weight-bold text-primary">Recent Test Attempts</h6>
+                        <h6 class="m-0 font-weight-bold text-primary">Recent Results</h6>
                         <a href="{{ route('teacher.results.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                     <div class="card-body p-0">
-                        @php
-                            $recentAttempts = $teacher ? 
-                                App\Models\TestAttempt::whereHas('mcqTest', function($query) use ($teacher) {
-                                    $query->where('teacher_id', $teacher->id);
-                                })
-                                ->with(['mcqTest', 'user', 'responses'])
-                                ->latest()
-                                ->take(5)
-                                ->get() : collect([]);
-                        @endphp
-                        @foreach($recentAttempts as $attempt)
-                            <div class="card mb-3 mx-3 mt-3 attempt-card">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h5 class="card-title">
-                                            <a href="{{ route('teacher.results.show', $attempt) }}" class="text-decoration-none">
-                                                {{ $attempt->mcqTest->title ?? 'N/A' }}
+                        <div class="test-list" style="max-height: 650px; overflow-y: auto;">
+                            @forelse($recentResults as $result)
+                                <div class="card mb-3 mx-3 mt-3">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h5 class="card-title">
+                                                <a href="{{ route('mcq-tests.show', $result->mcqTest) }}" class="text-decoration-none">
+                                                    {{ $result->mcqTest->title ?? 'Unknown Test' }}
+                                                </a>
+                                            </h5>
+                                            <span class="badge bg-{{ $result->score >= ($result->mcqTest->passing_percentage ?? 0) ? 'success' : 'danger' }}">
+                                                {{ $result->score }}%
+                                            </span>
+                                        </div>
+                                        <p class="card-text text-muted small">
+                                            {{ $result->user->name ?? 'Unknown Student' }} - {{ $result->completed_at ? $result->completed_at->diffForHumans() : 'Not completed' }}
+                                        </p>
+                                        
+                                        <div class="progress mt-2" style="height: 10px;">
+                                            <div class="progress-bar {{ $result->score >= ($result->mcqTest->passing_percentage ?? 0) ? 'bg-success' : 'bg-danger' }}" 
+                                                role="progressbar" 
+                                                style="width: {{ $result->score }}%;" 
+                                                aria-valuenow="{{ $result->score }}" 
+                                                aria-valuemin="0" 
+                                                aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <div>
+                                                <small class="text-muted">Duration: {{ $result->duration_minutes ?? 'N/A' }} min</small>
+                                            </div>
+                                            <a href="{{ route('tests.student.attempt.show', $result->id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                View Details
                                             </a>
-                                        </h5>
-                                        <span class="badge 
-                                            @if($attempt->score >= ($attempt->mcqTest->passing_percentage ?? 40)) 
-                                                bg-success
-                                            @else
-                                                bg-danger
-                                            @endif">
-                                            {{ number_format($attempt->score, 1) }}%
-                                        </span>
-                                    </div>
-                                    <p class="card-text text-muted small">Attempted {{ $attempt->created_at->diffForHumans() }}</p>
-                                    
-                                    <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <p class="mb-1"><i class="bi bi-person"></i> <strong>Student:</strong> {{ $attempt->user->name ?? 'N/A' }}</p>
-                                            <p class="mb-1"><i class="bi bi-stopwatch"></i> <strong>Time taken:</strong> 
-                                                @if($attempt->completed_at && $attempt->started_at)
-                                                    {{ $attempt->started_at->diffInMinutes($attempt->completed_at) }} min
-                                                @else
-                                                    N/A
-                                                @endif
-                                            </p>
                                         </div>
-                                        <div class="col-md-6">
-                                            @php
-                                                $totalQuestions = $attempt->mcqTest ? $attempt->mcqTest->questions->count() : 0;
-                                                $answeredQuestions = $attempt->responses ? $attempt->responses->count() : 0;
-                                                $correctAnswers = $attempt->responses ? $attempt->responses->where('is_correct', true)->count() : 0;
-                                            @endphp
-                                            <p class="mb-1"><i class="bi bi-check-circle text-success"></i> <strong>Correct:</strong> {{ $correctAnswers }} / {{ $totalQuestions }}</p>
-                                            <p class="mb-1"><i class="bi bi-x-circle text-danger"></i> <strong>Incorrect:</strong> {{ $answeredQuestions - $correctAnswers }}</p>
-                                            @if($answeredQuestions < $totalQuestions)
-                                                <p class="mb-1"><i class="bi bi-question-circle text-warning"></i> <strong>Unanswered:</strong> {{ $totalQuestions - $answeredQuestions }}</p>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3">
-                                        <div class="progress" style="height: 8px;">
-                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ ($correctAnswers / max(1, $totalQuestions)) * 100 }}%" aria-valuenow="{{ $correctAnswers }}" aria-valuemin="0" aria-valuemax="{{ $totalQuestions }}"></div>
-                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ (($answeredQuestions - $correctAnswers) / max(1, $totalQuestions)) * 100 }}%" aria-valuenow="{{ $answeredQuestions - $correctAnswers }}" aria-valuemin="0" aria-valuemax="{{ $totalQuestions }}"></div>
-                                            <div class="progress-bar bg-light" role="progressbar" style="width: {{ (($totalQuestions - $answeredQuestions) / max(1, $totalQuestions)) * 100 }}%" aria-valuenow="{{ $totalQuestions - $answeredQuestions }}" aria-valuemin="0" aria-valuemax="{{ $totalQuestions }}"></div>
-                                        </div>
-                                        <div class="d-flex justify-content-between mt-2">
-                                            <small class="text-success">Correct</small>
-                                            <small class="text-danger">Incorrect</small>
-                                            <small class="text-muted">Unanswered</small>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="mt-3 text-end">
-                                        <a href="{{ route('teacher.results.show', $attempt) }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i> View Details
-                                        </a>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                        @if($recentAttempts->isEmpty())
-                            <div class="text-center py-4">
-                                <p class="text-muted">No test attempts yet.</p>
-                            </div>
-                        @endif
+                            @empty
+                                <div class="text-center py-4">
+                                    <p class="text-muted">No test results yet.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-center py-3">
+                            {{ $recentResults->appends(['tests_page' => request()->tests_page])->links() }}
+                        </div>
                     </div>
                 </div>
             </div>

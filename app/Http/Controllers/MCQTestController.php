@@ -19,9 +19,9 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\Database\QueryException;
 use Exception;
 use App\Models\TestAttempt;
-use App\Models\MCQQuestion;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use App\Models\StudentResponse;
 
 class MCQTestController extends BaseController
 {
@@ -38,45 +38,51 @@ class MCQTestController extends BaseController
     public function index()
     {
         if (auth()->user()->hasRole('teacher')) {
-            $tests = MCQTest::where('user_id', auth()->id())
-                ->with(['subject', 'questions'])
-                ->latest()
-                ->take(6)
-                ->get();
-
-            $testsCount = MCQTest::where('user_id', auth()->id())->count();
-            $activeTestsCount = MCQTest::where('user_id', auth()->id())->where('is_active', true)->count();
-            $questionsCount = MCQQuestion::whereHas('test', function ($query) {
-                $query->where('user_id', auth()->id());
-            })->count();
-
-            $recentResults = TestAttempt::whereHas('mcqTest', function ($query) {
-                $query->where('user_id', auth()->id());
-            })->with(['user', 'mcqTest'])->latest()->take(5)->get();
-
-            return view('teacher.dashboard', compact('tests', 'testsCount', 'activeTestsCount', 'questionsCount', 'recentResults'));
+            try {
+                // Get current teacher id
+                $teacherId = auth()->user()->teacher->id ?? null;
+                
+                if (!$teacherId) {
+                    Log::error('Teacher ID not found for user', [
+                        'user_id' => auth()->id()
+                    ]);
+                    return view('teacher.mcq-tests.index', [
+                        'tests' => collect([]),
+                        'error' => 'Teacher profile not found. Please contact administrator.'
+                    ]);
+                }
+                
+                // Log the query we're about to run
+                Log::info('Fetching MCQ tests for teacher', [
+                    'teacher_id' => $teacherId
+                ]);
+                
+                // Use proper teacher_id column instead of user_id and add pagination
+                $tests = MCQTest::where('teacher_id', $teacherId)
+                    ->with(['subject', 'questions'])
+                    ->latest()
+                    ->paginate(10); // Add pagination
+                
+                Log::info('MCQ tests fetched successfully', [
+                    'count' => $tests->count(),
+                    'teacher_id' => $teacherId
+                ]);
+                
+                return view('teacher.mcq-tests.index', compact('tests'));
+            } catch (\Exception $e) {
+                Log::error('Error fetching MCQ tests', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                
+                return view('errors.custom', [
+                    'errorTitle' => 'Error Loading Tests',
+                    'errorMessage' => 'We encountered an issue while trying to load your tests. Our team has been notified.'
+                ], 500);
+            }
         } else {
-            // Student dashboard
-            $results = TestAttempt::where('user_id', auth()->id())
-                ->with(['mcqTest.subject'])
-                ->latest()
-                ->take(5)
-                ->get();
-
-            $resultsCount = TestAttempt::where('user_id', auth()->id())->count();
-            $testsAttempted = TestAttempt::where('user_id', auth()->id())->distinct('mcq_test_id')->count('mcq_test_id');
-            $averageScore = TestAttempt::where('user_id', auth()->id())->avg('score') ?? 0;
-            
-            // Get available tests for the student dashboard
-            $availableTests = $this->availableTests()->take(6)->get();
-
-            return view('student.dashboard', compact(
-                'results',
-                'resultsCount',
-                'testsAttempted',
-                'averageScore',
-                'availableTests'
-            ));
+            // Student view for available tests
+            return redirect()->route('available-tests');
         }
     }
 
@@ -294,11 +300,64 @@ class MCQTestController extends BaseController
                 'end_time' => 'required|date|after:start_time',
             ]);
 
-            // Handle the is_active checkbox (will be null if not checked)
-            $data = $request->all();
-            $data['is_active'] = $request->has('is_active');
-
+            // First, update all fields except is_active
+            $data = $request->except(['_token', '_method', 'is_active']);
             $mcqTest->update($data);
+            
+            // Handle the is_active field separately
+            
+            // For HTML form checkbox behavior:
+            // 1. When checkbox is checked, is_active will be in the request
+            // 2. When checkbox is unchecked, is_active won't be in the request at all
+            
+            // For API/JSON requests:
+            // We need to handle explicit is_active=false
+            
+            $isActive = false; // Default to false
+            
+            // If is_active is in the request
+            if ($request->has('is_active')) {
+                $rawValue = $request->input('is_active');
+                
+                // Handle falsy string values explicitly
+                if (is_string($rawValue)) {
+                    $lowercaseValue = strtolower($rawValue);
+                    if (in_array($lowercaseValue, ['0', 'false', 'no', 'off'])) {
+                        $isActive = false;
+                    } else {
+                        // For other string values, use filter_var
+                        $isActive = filter_var($rawValue, FILTER_VALIDATE_BOOLEAN);
+                    }
+                } else if (is_null($rawValue) || $rawValue === '') {
+                    // Explicitly handle null and empty string
+                    $isActive = false;
+                } else {
+                    // For boolean or numeric values
+                    $isActive = filter_var($rawValue, FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+            
+            // Log the processed value
+            Log::info('Processing is_active value', [
+                'test_id' => $mcqTest->id,
+                'raw_value' => $request->has('is_active') ? $request->input('is_active') : 'not present',
+                'processed_value' => $isActive,
+                'is_active_type' => gettype($isActive)
+            ]);
+            
+            // Explicitly update is_active directly in the database to ensure it's saved correctly
+            DB::table('mcq_tests')
+                ->where('id', $mcqTest->id)
+                ->update(['is_active' => $isActive]);
+            
+            // Refresh the model to get the updated values
+            $mcqTest->refresh();
+            
+            Log::info('MCQ Test updated', [
+                'test_id' => $mcqTest->id,
+                'is_active' => $mcqTest->is_active,
+                'db_is_active' => DB::table('mcq_tests')->where('id', $mcqTest->id)->value('is_active')
+            ]);
 
             return redirect()->route('mcq-tests.show', $mcqTest)
                 ->with('success', 'Test updated successfully.');
@@ -491,7 +550,8 @@ class MCQTestController extends BaseController
         Log::info('Test submission initiated', [
             'test_id' => $mcq_test->id,
             'user_id' => auth()->id(),
-            'answers' => $request->has('answers') ? count($request->answers) : 0
+            'answers' => $request->has('answers') ? count($request->answers) : 0,
+            'raw_data' => $request->all()
         ]);
 
         try {
@@ -510,91 +570,89 @@ class MCQTestController extends BaseController
             // Process answers
             $answeredQuestions = 0;
             $correctAnswers = 0;
+            $totalQuestions = $mcq_test->questions->count();
 
             if ($request->has('answers')) {
                 foreach ($request->answers as $questionId => $answer) {
                     $question = Question::findOrFail($questionId);
                     
-                    // Skip if no answer was provided for this question
-                    if (!isset($answer['selected_option'])) {
-                        continue;
+                    // Determine selected options and format correctly
+                    $selectedOptions = null;
+                    if (isset($answer['selected_option']) && !empty($answer['selected_option'])) {
+                        // Format selected options as array
+                        $selectedOptions = is_array($answer['selected_option']) 
+                            ? $answer['selected_option'] 
+                            : [$answer['selected_option']];
+                        
+                        $answeredQuestions++;
                     }
                     
-                    $answeredQuestions++;
-                    
-                    // Get correct option
-                    $correctOption = is_string($question->correct_option) 
-                        ? json_decode($question->correct_option, true) 
-                        : $question->correct_option;
-                    
-                    // Check if answer is correct
-                    $isCorrect = false;
-                    
-                    // Handle multiple correct answers
-                    if (is_array($correctOption)) {
-                        $isCorrect = in_array($answer['selected_option'], $correctOption);
-                    } else {
-                        $isCorrect = $answer['selected_option'] === $correctOption;
-                    }
-                    
-                    if ($isCorrect) {
-                        $correctAnswers++;
-                    }
-                    
-                    // Check if there's an existing response with review status
+                    // Check if there's an existing response
                     $existingResponse = $attempt->responses()
                         ->where('question_id', $questionId)
                         ->first();
                     
-                    $isMarkedForReview = false;
-                    if ($existingResponse && Schema::hasColumn('student_responses', 'is_marked_for_review')) {
-                        $isMarkedForReview = $existingResponse->is_marked_for_review;
-                    }
+                    $isMarkedForReview = isset($answer['is_marked_for_review']) && $answer['is_marked_for_review'] === 'true';
                     
-                    // Store the answer - use responses instead of answers
-                    $attempt->responses()->updateOrCreate(
-                        [
-                            'test_attempt_id' => $attempt->id,
-                        'question_id' => $questionId,
-                        ],
-                        [
-                        'selected_option' => $answer['selected_option'],
-                            'is_correct' => $isCorrect,
+                    if ($existingResponse) {
+                        // Update existing response
+                        $existingResponse->update([
+                            'selected_option' => $selectedOptions ? json_encode($selectedOptions) : null,
                             'is_marked_for_review' => $isMarkedForReview
-                        ]
-                    );
+                        ]);
+                        
+                        // is_correct will be calculated by the model's boot method
+                        
+                        if ($existingResponse->is_correct) {
+                            $correctAnswers++;
+                        }
+                    } else {
+                        // Create new response
+                        $response = StudentResponse::create([
+                            'test_attempt_id' => $attempt->id,
+                            'question_id' => $questionId,
+                            'selected_option' => $selectedOptions ? json_encode($selectedOptions) : null,
+                            'is_marked_for_review' => $isMarkedForReview
+                        ]);
+                        
+                        if ($response->is_correct) {
+                            $correctAnswers++;
+                        }
+                    }
                 }
             }
 
             // Calculate score
-            $totalQuestions = $mcq_test->questions->count();
             $score = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
             
-            // Update test attempt
+            // Update attempt
             $attempt->update([
                 'completed_at' => now(),
-                'score' => $score,
+                'score' => $score
             ]);
-
+            
             DB::commit();
             
             Log::info('Test submission completed successfully', [
-                'test_id' => $mcq_test->id,
                 'attempt_id' => $attempt->id,
-                'user_id' => auth()->id(),
-                'score' => $score,
-                'answered' => $answeredQuestions,
-                'correct' => $correctAnswers
+                'questions_answered' => $answeredQuestions,
+                'total_questions' => $totalQuestions,
+                'correct_answers' => $correctAnswers,
+                'score' => $score
             ]);
-
-            return redirect()->route('results.show', $attempt->id)->with('success', 'Test submitted successfully!');
-        } catch (\Exception $e) {
+            
+            return redirect()
+                ->route('results.show', $attempt->id)
+                ->with('success', 'Test submitted successfully!');
+                
+        } catch (Exception $e) {
             DB::rollBack();
+            
             Log::error('Error submitting test', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
                 'test_id' => $mcq_test->id,
-                'user_id' => auth()->id()
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
             
             return back()->with('error', 'An error occurred while submitting your test. Please try again.');
@@ -1057,6 +1115,67 @@ class MCQTestController extends BaseController
             ]);
             
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Dashboard for teachers
+     */
+    public function dashboard()
+    {
+        try {
+            // Get current teacher id
+            $teacherId = auth()->user()->teacher->id ?? null;
+            
+            if (!$teacherId) {
+                Log::error('Teacher ID not found for user', [
+                    'user_id' => auth()->id()
+                ]);
+                return view('teacher.dashboard', [
+                    'tests' => collect([]),
+                    'testsCount' => 0,
+                    'activeTestsCount' => 0,
+                    'questionsCount' => 0,
+                    'recentResults' => collect([]),
+                    'error' => 'Teacher profile not found. Please contact administrator.'
+                ]);
+            }
+            
+            // Use proper teacher_id column
+            $tests = MCQTest::where('teacher_id', $teacherId)
+                ->with(['subject', 'questions'])
+                ->latest()
+                ->paginate(5, ['*'], 'tests_page'); // Paginate with 5 tests per page
+            
+            $testsCount = MCQTest::where('teacher_id', $teacherId)->count();
+            $activeTestsCount = MCQTest::where('teacher_id', $teacherId)->where('is_active', true)->count();
+            $questionsCount = Question::whereHas('mcqTest', function ($query) use ($teacherId) {
+                $query->where('teacher_id', $teacherId);
+            })->count();
+            
+            $recentResults = TestAttempt::whereHas('mcqTest', function ($query) use ($teacherId) {
+                $query->where('teacher_id', $teacherId);
+            })->with(['user', 'mcqTest'])
+              ->latest()
+              ->paginate(5, ['*'], 'results_page'); // Paginate with 5 results per page
+            
+            return view('teacher.dashboard', compact(
+                'tests', 
+                'testsCount', 
+                'activeTestsCount', 
+                'questionsCount', 
+                'recentResults'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error loading teacher dashboard', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return view('errors.custom', [
+                'errorTitle' => 'Error Loading Dashboard',
+                'errorMessage' => 'We encountered an issue loading your dashboard. Our team has been notified.'
+            ], 500);
         }
     }
 }

@@ -4,7 +4,7 @@
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h1 class="h3 mb-0 text-gray-800">Student Dashboard</h1>
             <div>
-                <a href="{{ route('results.index') }}" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm me-2">
+                <a href="{{ route('student.results.index') }}" class="d-none d-sm-inline-block btn btn-sm btn-info shadow-sm me-2">
                     <i class="bi bi-list-check me-2"></i> View All Results
                 </a>
                 <a href="{{ route('tests.available') }}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
@@ -211,8 +211,14 @@
                                             </div>
                                         </div>
                                     </div>
-                            @endforeach
-                        </div>
+                                @endforeach
+                            </div>
+                            <!-- Pagination -->
+                            <div class="d-flex justify-content-center py-3">
+                                @if(method_exists($availableTests, 'appends'))
+                                    {{ $availableTests->appends(['results_page' => request()->results_page])->links() }}
+                                @endif
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -223,7 +229,7 @@
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h6 class="m-0 font-weight-bold text-primary">Recent Results</h6>
-                        <a href="{{ route('results.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                        <a href="{{ route('student.results.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                     <div class="card-body">
                         @php
@@ -336,13 +342,19 @@
                                         
                                         <div class="d-flex justify-content-between mt-3">
                                             <small>Time: {{ round($attempt->created_at->diffInMinutes($attempt->completed_at)) }} min</small>
-                                            <a href="{{ route('results.show', $attempt->id) }}" class="btn btn-sm btn-outline-primary">
+                                            <a href="{{ route('student.results.show', $attempt->id) }}" class="btn btn-sm btn-outline-primary">
                                                 View Details <i class="bi bi-arrow-right"></i>
                                             </a>
                                         </div>
                                     </div>
                                 </div>
                             @endforeach
+                            <!-- Pagination -->
+                            <div class="d-flex justify-content-center py-3">
+                                @if(method_exists($recentAttempts, 'appends'))
+                                    {{ $recentAttempts->appends(['tests_page' => request()->tests_page])->links() }}
+                                @endif
+                            </div>
                         @endif
                     </div>
                 </div>

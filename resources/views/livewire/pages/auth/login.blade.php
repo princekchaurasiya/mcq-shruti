@@ -27,45 +27,65 @@ new #[Layout('layouts.guest')] class extends Component
 <div>
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
+    
+    <h2 class="auth-title">{{ __('Welcome Back') }}</h2>
+    <p class="auth-subtitle">{{ __('Sign in to your account') }}</p>
 
     <form wire:submit="login">
+        <!-- Validation Error Summary -->
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <!-- Email Address -->
-        <div>
+        <div class="form-group">
             <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
+            <x-text-input wire:model="form.email" id="email" type="email" name="email" required autofocus autocomplete="username" />
             <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
         </div>
 
         <!-- Password -->
-        <div class="mt-4">
+        <div class="form-group">
             <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input wire:model="form.password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
+            <x-text-input wire:model="form.password" id="password" type="password" name="password" required autocomplete="current-password" />
             <x-input-error :messages="$errors->get('form.password')" class="mt-2" />
         </div>
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember" class="inline-flex items-center">
-                <input wire:model="form.remember" id="remember" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}" wire:navigate>
+        <!-- Forgot Password -->
+        @if (Route::has('password.request'))
+            <div class="forgot-password">
+                <a class="auth-link" href="{{ route('password.request') }}" wire:navigate>
                     {{ __('Forgot your password?') }}
                 </a>
-            @endif
+            </div>
+        @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
+        <!-- Remember Me -->
+        <div class="form-check">
+            <input wire:model="form.remember" id="remember" type="checkbox" class="form-check-input" name="remember">
+            <label for="remember" class="form-check-label">{{ __('Remember me') }}</label>
+        </div>
+
+        <div>
+            <x-primary-button>
+                {{ __('LOG IN') }}
             </x-primary-button>
         </div>
+
+        <!-- Register Link -->
+        @if (Route::has('register'))
+            <div class="text-center mt-4">
+                <span class="text-gray-600">{{ __('Don\'t have an account?') }}</span>
+                <a class="auth-link" href="{{ route('register') }}" wire:navigate>
+                    {{ __('Register') }}
+                </a>
+            </div>
+        @endif
     </form>
 </div>

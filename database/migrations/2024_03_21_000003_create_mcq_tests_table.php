@@ -55,6 +55,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->integer('duration')->comment('Duration in minutes')->default(60);
             $table->integer('total_marks')->default(0);
+            $table->integer('pass_percentage')->default(60);
             $table->timestamp('start_time')->nullable();
             $table->timestamp('end_time')->nullable();
             $table->boolean('is_active')->default(true);

@@ -78,8 +78,8 @@
                 <a href="{{ route('tests.available') }}" class="list-group-item list-group-item-action {{ request()->routeIs('tests.available') ? 'active' : '' }}">
                     <i class="bi bi-journal-text me-2"></i> Available Tests
                 </a>
-                <a href="{{ route('my-results') }}" class="list-group-item list-group-item-action {{ request()->routeIs('my-results') ? 'active' : '' }}">
-                    <i class="bi bi-graph-up me-2"></i> My Results
+                <a href="{{ route('results.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('results.index') ? 'active' : '' }}">
+                    <i class="bi bi-bar-chart-line me-2"></i> My Results
                 </a>
                 <a href="{{ route('profile.edit') }}" class="list-group-item list-group-item-action {{ request()->routeIs('profile.*') ? 'active' : '' }}">
                     <i class="bi bi-person-circle me-2"></i> Profile

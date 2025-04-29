@@ -47,33 +47,33 @@ class TeacherResultController extends Controller
         }
     }
 
+    /**
+     * Display the specified student test result.
+     */
     public function show($id)
     {
         try {
-            $testAttempt = TestAttempt::with(['user', 'mcqTest.questions', 'responses'])
-                ->findOrFail($id);
+            $testAttempt = TestAttempt::with(['user', 'mcqTest.subject', 'responses.question'])->findOrFail($id);
             
-            // Only the teacher who created the test can view results
-            if (auth()->user()->teacher->id !== $testAttempt->mcqTest->user_id) {
-                $this->logWarning('Unauthorized access attempt to test result details', [
-                    'teacher_id' => auth()->id(),
-                    'test_owner_id' => $testAttempt->mcqTest->user_id,
-                    'test_attempt_id' => $id
-                ]);
-                
-                return redirect()->route('teacher.dashboard')
-                    ->with('error', 'You can only view results for your own tests.');
-            }
+            // Get the formatted responses using our model attribute
+            $processedAnswers = $testAttempt->formatted_responses ?? collect([]);
+            
+            \Log::info('Teacher viewing student result', [
+                'teacher_id' => auth()->id(),
+                'student_id' => $testAttempt->user_id,
+                'result_id' => $testAttempt->id,
+                'answers_count' => $processedAnswers->count()
+            ]);
             
             // Calculate time taken in minutes
             $timeTaken = $testAttempt->completed_at 
                 ? ceil($testAttempt->completed_at->diffInSeconds($testAttempt->started_at) / 60) 
                 : null;
-            
+                
             // Count questions in each category
-            $totalQuestions = $testAttempt->mcqTest->questions->count();
-            $correctAnswers = $testAttempt->responses->where('is_correct', true)->count();
-            $incorrectAnswers = $testAttempt->responses->where('is_correct', false)->count();
+            $totalQuestions = $testAttempt->mcqTest->questions->count() ?? 0;
+            $correctAnswers = $testAttempt->responses->where('is_correct', true)->count() ?? 0;
+            $incorrectAnswers = $testAttempt->responses->where('is_correct', false)->count() ?? 0;
             $unansweredQuestions = $totalQuestions - $correctAnswers - $incorrectAnswers;
             
             // Get the attempt number for this student
@@ -81,35 +81,30 @@ class TeacherResultController extends Controller
                 ->where('mcq_test_id', $testAttempt->mcq_test_id)
                 ->where('created_at', '<=', $testAttempt->created_at)
                 ->count();
-            
+                
             // Calculate percentages for charts
             $correctPercentage = $totalQuestions > 0 ? round(($correctAnswers / $totalQuestions) * 100, 1) : 0;
             $incorrectPercentage = $totalQuestions > 0 ? round(($incorrectAnswers / $totalQuestions) * 100, 1) : 0;
             $unansweredPercentage = $totalQuestions > 0 ? round(($unansweredQuestions / $totalQuestions) * 100, 1) : 0;
             
-            // Organize questions with responses
-            $questions = [];
+            // Get responses more directly for the view
+            $responses = $testAttempt->responses()->with('question')->get();
             
-            foreach ($testAttempt->mcqTest->questions as $question) {
-                $response = $testAttempt->responses->firstWhere('question_id', $question->id);
-                
+            // Convert the formatted responses to the format the view expects
+            $questions = [];
+            foreach ($processedAnswers as $answer) {
                 $questions[] = [
-                    'id' => $question->id,
-                    'question_text' => $question->question_text,
-                    'options' => json_decode($question->options, true),
-                    'correct_option' => json_decode($question->correct_option, true),
-                    'selected_option' => $response ? $response->selected_option : null,
-                    'is_correct' => $response ? $response->is_correct : false,
-                    'is_answered' => $response !== null,
-                    'explanation' => $question->explanation
+                    'question_text' => $answer['question']['text'] ?? 'Question text unavailable',
+                    'explanation' => $answer['question']['explanation'] ?? null,
+                    'options' => array_map(function($option) {
+                        return $option['text'] ?? 'Option text unavailable';
+                    }, $answer['options'] ?? []),
+                    'selected_option' => $this->findSelectedOptionIndex($answer['options'] ?? []),
+                    'correct_option' => $this->findCorrectOptionIndex($answer['options'] ?? []),
+                    'is_correct' => $answer['is_correct'] ?? false,
+                    'is_answered' => $answer['is_answered'] ?? false
                 ];
             }
-            
-            $this->logInfo('Teacher viewed test attempt details', [
-                'teacher_id' => auth()->user()->teacher->id,
-                'test_attempt_id' => $testAttempt->id,
-                'student_id' => $testAttempt->user_id
-            ]);
             
             return view('teacher.results.show', compact(
                 'testAttempt',
@@ -122,16 +117,46 @@ class TeacherResultController extends Controller
                 'incorrectPercentage',
                 'unansweredPercentage',
                 'questions',
-                'attemptNumber'
+                'attemptNumber',
+                'responses'
             ));
         } catch (\Exception $e) {
-            $this->logError('Error displaying test attempt details', [
-                'test_attempt_id' => $id,
+            \Log::error('Error displaying test result', [
+                'test_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
             
-            return back()->with('error', 'Unable to view test result details. Please try again.');
+            return response()->view('errors.custom', [
+                'errorTitle' => 'Error Displaying Result',
+                'errorMessage' => 'We encountered an issue while trying to display this test result. Our team has been notified.'
+            ], 500);
         }
+    }
+    
+    /**
+     * Helper method to find the index of the selected option
+     */
+    private function findSelectedOptionIndex($options)
+    {
+        foreach ($options as $index => $option) {
+            if (isset($option['is_selected']) && $option['is_selected']) {
+                return $index;
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Helper method to find the index of the correct option
+     */
+    private function findCorrectOptionIndex($options)
+    {
+        foreach ($options as $index => $option) {
+            if (isset($option['is_correct']) && $option['is_correct']) {
+                return $index;
+            }
+        }
+        return null;
     }
 } 

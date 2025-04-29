@@ -20,6 +20,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Disable Vite
+        \Illuminate\Foundation\Vite::macro('useCspNonce', function () {
+            return $this;
+        });
+        
         // Create custom log channels for different user types
         $this->configureLogging();
     }

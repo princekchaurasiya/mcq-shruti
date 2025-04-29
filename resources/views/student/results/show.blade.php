@@ -1,103 +1,128 @@
 <x-student-layout>
-    <div class="container-fluid">
-        <!-- Page Heading -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
-            <h1 class="h3 mb-0 text-gray-800">Test Result Details</h1>
-            <a href="{{ route('results.index') }}" class="d-none d-sm-inline-block btn btn-sm btn-secondary shadow-sm">
-                <i class="bi bi-arrow-left me-2"></i> Back to Results
-            </a>
+<div class="container py-4">
+    @if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
         </div>
+    @endif
 
-        <!-- Result Summary Card -->
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">{{ $result->mcqTest->title }}</h6>
-                
-                <!-- Score Badge -->
-                <div class="score-badge rounded px-3 py-2 {{ $result->score >= $result->mcqTest->passing_percentage ? 'bg-success' : 'bg-danger' }} text-white">
-                    <strong>Score: {{ number_format($result->score, 1) }}%</strong>
-                    <span class="ms-2 badge bg-light text-dark">
-                        {{ $result->score >= $result->mcqTest->passing_percentage ? 'PASSED' : 'FAILED' }}
-                    </span>
+    @if(session('error'))
+        <div class="alert alert-danger">
+            {{ session('error') }}
                 </div>
+    @endif
+
+    <div class="mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header py-3">
+                <h5 class="mb-0 fw-bold">Test Result Summary</h5>
             </div>
             <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <p><strong>Subject:</strong> {{ $result->mcqTest->subject->name }}</p>
-                        <p><strong>Total Questions:</strong> {{ $result->mcqTest->questions->count() }}</p>
-                        <p><strong>Duration:</strong> {{ $result->mcqTest->duration_minutes }} minutes</p>
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <h4 class="mb-3">{{ $result->mcqTest->title }}</h4>
+                        <h2 class="display-6 fw-bold mb-3">{{ number_format($result->score, 1) }}%</h2>
+                        
+                        <!-- Basic test info -->
+                        <div class="mb-4">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-3" style="width: 28px;"><i class="bi bi-book fs-5"></i></div>
+                                <div>
+                                    <div class="small text-muted">Subject</div>
+                                    <div>{{ $result->mcqTest->subject->name }}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-3" style="width: 28px;"><i class="bi bi-question-circle fs-5"></i></div>
+                                <div>
+                                    <div class="small text-muted">Total Questions</div>
+                                    <div>{{ $result->mcqTest->questions()->count() }}</div>
+                                </div>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-3" style="width: 28px;"><i class="bi bi-clock fs-5"></i></div>
+                                <div>
+                                    <div class="small text-muted">Duration</div>
+                                    <div>{{ $result->mcqTest->duration_minutes }} minutes</div>
+                                </div>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Completed At:</strong> {{ $result->completed_at->format('M d, Y H:i') }}</p>
-                        <p><strong>Time Taken:</strong> {{ round($result->created_at->diffInMinutes($result->completed_at)) }} minutes</p>
-                        <p><strong>Pass Requirement:</strong> {{ $result->mcqTest->passing_percentage }}%</p>
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="me-3" style="width: 28px;"><i class="bi bi-calendar-check fs-5"></i></div>
+                                <div>
+                                    <div class="small text-muted">Completed</div>
+                                    <div>{{ $result->completed_at ? $result->completed_at->format('M d, Y h:i A') : 'In Progress' }}</div>
                     </div>
                 </div>
-                
-                <!-- Performance Summary -->
-                <div class="performance-summary border rounded p-3 mb-4">
-                    <div class="d-flex justify-content-between mb-3">
-                        <h6 class="font-weight-bold mb-0">Performance Summary</h6>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3" style="width: 28px;"><i class="bi bi-award fs-5"></i></div>
                         <div>
-                            <button id="show-all-btn" class="btn btn-sm btn-outline-secondary active">All Questions</button>
-                            <button id="show-correct-btn" class="btn btn-sm btn-outline-success">Correct Only</button>
-                            <button id="show-incorrect-btn" class="btn btn-sm btn-outline-danger">Incorrect Only</button>
+                                    <div class="small text-muted">Pass Requirement</div>
+                                    <div>{{ $result->mcqTest->passing_percentage }}%</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    @php
-                        $totalQuestions = $result->mcqTest->questions->count();
-                        $correct = $answers->where('is_correct', true)->count();
-                        $incorrect = $answers->where('is_correct', false)->count();
-                        
-                        // Check if review column exists
-                        $reviewCount = 0;
-                        try {
-                            $reviewCount = $answers->where('is_marked_for_review', true)->count();
-                        } catch (\Exception $e) {
-                            // Column might not exist
-                        }
-                        
-                        $correctPercent = $totalQuestions > 0 ? ($correct / $totalQuestions) * 100 : 0;
-                        $incorrectPercent = $totalQuestions > 0 ? ($incorrect / $totalQuestions) * 100 : 0;
-                        $reviewPercent = $totalQuestions > 0 ? ($reviewCount / $totalQuestions) * 100 : 0;
+                    <div class="col-lg-4">
+                        <div class="card bg-light border-0 h-100">
+                            <div class="card-body p-4">
+                                <h5 class="mb-3">Performance</h5>
+                                
+                                @php
+                                    // Calculate metrics from formatted responses
+                                    $formattedResponses = $result->formattedResponses;
+                                    $totalQuestions = $formattedResponses->count();
+                                    $correctAnswers = $formattedResponses->where('is_correct', true)->count();
+                                    $incorrectAnswers = $totalQuestions - $correctAnswers;
+                                    
+                                    $percentCorrect = $totalQuestions > 0 ? ($correctAnswers / $totalQuestions) * 100 : 0;
+                                    $percentIncorrect = $totalQuestions > 0 ? ($incorrectAnswers / $totalQuestions) * 100 : 0;
                     @endphp
                     
-                    <!-- Progress bar showing correct/incorrect ratio -->
-                    <div class="progress mb-3" style="height: 25px;">
-                        <div class="progress-bar bg-success d-flex align-items-center justify-content-center" 
-                             style="width: {{ $correctPercent }}%">
-                            <span class="px-2">{{ $correct }} Correct</span>
+                                <!-- Performance summary -->
+                                <div class="mb-4">
+                                    <div class="btn-group btn-group-sm w-100 mb-3" role="group">
+                                        <button type="button" class="btn btn-outline-primary active" data-filter="all">All ({{ $totalQuestions }})</button>
+                                        <button type="button" class="btn btn-outline-success" data-filter="correct">Correct ({{ $correctAnswers }})</button>
+                                        <button type="button" class="btn btn-outline-danger" data-filter="incorrect">Incorrect ({{ $incorrectAnswers }})</button>
                         </div>
-                        <div class="progress-bar bg-danger d-flex align-items-center justify-content-center" 
-                             style="width: {{ $incorrectPercent }}%">
-                            <span class="px-2">{{ $incorrect }} Incorrect</span>
-                        </div>
-                        @if($reviewPercent > 0)
-                            <div class="progress-bar bg-warning" style="width: {{ $reviewPercent }}%">
-                                {{ $reviewCount }} Reviewed
+                                    
+                                    <div class="progress" style="height: 10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percentCorrect }}%" aria-valuenow="{{ $percentCorrect }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ $percentIncorrect }}%" aria-valuenow="{{ $percentIncorrect }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
-                        @endif
                     </div>
                     
-                    <div class="row text-center">
-                        <div class="col-md-4 mb-2">
-                            <div id="correct-card" class="border border-success rounded py-2 stat-card" data-filter="correct">
-                                <h4 class="mb-0 text-success">{{ $correct }}</h4>
-                                <small>Correct Answers</small>
+                                <!-- Stats -->
+                                <div class="mb-3">
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>Correct</div>
+                                            <div class="fw-bold text-success">{{ $correctAnswers }} ({{ number_format($percentCorrect, 1) }}%)</div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-2">
-                            <div id="incorrect-card" class="border border-danger rounded py-2 stat-card" data-filter="incorrect">
-                                <h4 class="mb-0 text-danger">{{ $incorrect }}</h4>
-                                <small>Incorrect Answers</small>
+                                    <div class="mb-0">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>Incorrect</div>
+                                            <div class="fw-bold text-danger">{{ $incorrectAnswers }} ({{ number_format($percentIncorrect, 1) }}%)</div>
+                                        </div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="border rounded py-2 stat-card" data-filter="all">
-                                <h4 class="mb-0">{{ $totalQuestions > 0 ? number_format(($correct / $totalQuestions) * 100, 0) : 0 }}%</h4>
-                                <small>Accuracy</small>
+                                
+                                <!-- Status -->
+                                <div class="mt-4 text-center">
+                                    @if($result->score >= $result->mcqTest->passing_percentage)
+                                        <div class="alert alert-success mb-0">
+                                            <i class="bi bi-emoji-smile fs-4 me-2"></i>
+                                            <span class="fw-bold">Passed!</span>
+                                        </div>
+                                    @else
+                                        <div class="alert alert-danger mb-0">
+                                            <i class="bi bi-emoji-frown fs-4 me-2"></i>
+                                            <span class="fw-bold">Not Passed</span>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -105,280 +130,192 @@
             </div>
         </div>
 
-        <!-- Questions and Answers -->
-        <div class="card shadow mb-4">
+    <div class="mb-4">
+        <div class="card shadow-sm">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold text-primary">Questions and Answers</h6>
-                <div id="filter-status" class="badge bg-secondary px-3 py-2">
-                    Showing All Questions
-                </div>
+                <h5 class="mb-0 fw-bold">Questions and Answers</h5>
             </div>
-            
-            <!-- Answer Legend Card -->
-            <div class="card-body border-bottom pb-2 mb-3">
-                <div class="answer-legend bg-light p-3 rounded border">
-                    <h6 class="mb-2 fw-bold">How to read your answers:</h6>
-                    <div class="d-flex flex-wrap">
-                        <div class="me-4 mb-2">
-                            <i class="bi bi-check-circle-fill text-success"></i>
-                            <span class="badge bg-success ms-1">Your Answer (Correct)</span>
-                            <small class="ms-1">You selected the right answer</small>
+            <div class="card-body p-0">
+                <div class="p-3 bg-light border-bottom">
+                    <div class="d-flex align-items-center">
+                        <div class="text-muted small me-4">
+                            <div class="d-flex align-items-center mb-1">
+                                <div class="me-2 option-marker-circle selected-marker">
+                                    <i class="fas fa-circle"></i>
+                                </div>
+                                <span>Your Selection</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2 option-marker-circle correct-marker">
+                                    <i class="fas fa-check-circle"></i>
                         </div>
-                        <div class="me-4 mb-2">
-                            <i class="bi bi-x-circle-fill text-danger"></i>
-                            <span class="badge bg-danger ms-1">Your Answer (Incorrect)</span>
-                            <small class="ms-1">You selected the wrong answer</small>
+                                <span>Correct Answer</span>
                         </div>
-                        <div class="me-4 mb-2">
-                            <i class="bi bi-check-circle text-success"></i>
-                            <span class="badge bg-success ms-1">Correct Answer</span>
-                            <small class="ms-1">The right answer when yours was wrong</small>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="card-body">
-                @foreach($answers as $index => $answer)
-                    <div class="question-block mb-4 p-3 border rounded {{ $answer->is_correct ? 'border-success' : 'border-danger' }} bg-light question-item {{ $answer->is_correct ? 'correct-question' : 'incorrect-question' }}">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0 fw-bold">Question {{ $index + 1 }}</h6>
-                            <span class="badge {{ $answer->is_correct ? 'bg-success' : 'bg-danger' }} px-3 py-2">
-                                {{ $answer->is_correct ? 'Correct' : 'Incorrect' }}
-                            </span>
                         </div>
                         
-                        <div class="question-text mb-3 p-2 bg-white rounded">
-                            {{ $answer->question->question_text }}
-                        </div>
-                        
-                        <div class="options-list">
-                            @php
-                                $options = is_string($answer->question->options) 
-                                    ? json_decode($answer->question->options, true) 
-                                    : $answer->question->options;
+                @foreach($result->formattedResponses as $index => $answer)
+                    <div class="question-item p-3 border-bottom {{ $answer['is_correct'] ? 'correct-question' : 'incorrect-question' }}">
+                        <div class="question-block mb-2">
+                            <!-- Question header with status badge -->
+                            <div class="mb-3 d-flex justify-content-between align-items-start">
+                                <h5 class="mb-0">Question {{ $index + 1 }}</h5>
                                 
-                                // Get correct option
-                                $correctOption = is_string($answer->question->correct_option) 
-                                    ? json_decode($answer->question->correct_option, true) 
-                                    : $answer->question->correct_option;
-                                
-                                // Convert to arrays for consistency
-                                $optionsArray = is_array($options) ? $options : (array)$options;
-                                
-                                // Handle selected option - convert from letter if needed
-                                $selectedOption = $answer->selected_option;
-                                if (is_array($selectedOption) && count($selectedOption) > 0) {
-                                    $selectedOption = $selectedOption[0];
-                                }
-                                
-                                // If selected option is a letter (a, b, c, etc.), convert to the option text
-                                $letterOptions = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-                                $selectedOptionText = null;
-                                $selectedLetterIndex = null;
-                                
-                                if (is_string($selectedOption) && in_array(strtolower($selectedOption), $letterOptions)) {
-                                    $letterIndex = array_search(strtolower($selectedOption), $letterOptions);
-                                    if ($letterIndex !== false) {
-                                        $selectedLetterIndex = (int)$letterIndex;
-                                        if (isset($optionsArray[$selectedLetterIndex])) {
-                                            $selectedOptionText = $optionsArray[$selectedLetterIndex];
-                                        }
-                                    }
-                                } else {
-                                    // If it's not a letter, it might be the actual text
-                                    $selectedOptionText = $selectedOption;
-                                }
-                                
-                                // Process correct options - normalize all formats to option text
-                                $normalizedCorrectOptions = [];
-                                $correctLetterIndices = [];
-                                
-                                // First ensure correctOption is an array
-                                if (!is_array($correctOption)) {
-                                    $correctOption = [$correctOption];
-                                }
-                                
-                                foreach ($correctOption as $co) {
-                                    if (is_string($co) && in_array(strtolower($co), $letterOptions)) {
-                                        $letterIndex = array_search(strtolower($co), $letterOptions);
-                                        if ($letterIndex !== false) {
-                                            $intLetterIndex = (int)$letterIndex;
-                                            $correctLetterIndices[] = $intLetterIndex;
-                                            if (isset($optionsArray[$intLetterIndex])) {
-                                                $normalizedCorrectOptions[] = $optionsArray[$intLetterIndex];
-                                            }
-                                        }
-                                    } else {
-                                        $normalizedCorrectOptions[] = $co;
-                                    }
-                                }
-                                
-                                // Now correctOption contains the actual option text, not letters
-                                $correctOptionText = $normalizedCorrectOptions;
-                                
-                                // Debug info
-                                $questionNumber = (int)$index + 1;
-                                $selectedLetterInfo = "";
-                                
-                                if (is_string($selectedOption) && strlen($selectedOption) == 1) {
-                                    // If it's a single letter, show which option it should correspond to
-                                    $letterIndex = ord(strtolower($selectedOption)) - ord('a');
-                                    if ($letterIndex >= 0 && $letterIndex < count($optionsArray)) {
-                                        $selectedLetterInfo = " (Letter '" . strtolower($selectedOption) . "' corresponds to option " . ($letterIndex + 1) . ")";
-                                    }
-                                }
-                                
-                                $debugInfo = "Question {$questionNumber}: Selected: " . json_encode($selectedOption) . 
-                                             $selectedLetterInfo .
-                                             ", Normalized Correct: " . json_encode($correctOptionText) . 
-                                             ", Is Correct: " . ($answer->is_correct ? 'Yes' : 'No');
-                            @endphp
-                            
-                            @if(env('APP_DEBUG', false))
-                            <div class="alert alert-info mb-3 small">
-                                <strong>Debug:</strong> {{ $debugInfo }}
-                                <br><strong>Raw Selected Option:</strong> {{ is_string($selectedOption) ? "\"$selectedOption\"" : json_encode($selectedOption) }}
-                                <br><strong>Selected Index:</strong> {{ $selectedLetterIndex !== null ? $selectedLetterIndex : 'none' }}
-                                <br><strong>Correct Indices:</strong> {{ json_encode($correctLetterIndices) }}
-                                <br><strong>Options:</strong> 
-                                @php
-                                    foreach($optionsArray as $idx => $opt) {
-                                        $letter = chr(ord('a') + (int)$idx);
-                                        $isSelectedByLetter = ($selectedLetterIndex !== null && $selectedLetterIndex === $idx);
-                                        $isCorrectByIndex = in_array($idx, $correctLetterIndices);
-                                        $status = [];
-                                        if ($isSelectedByLetter) $status[] = "SELECTED";
-                                        if ($isCorrectByIndex) $status[] = "CORRECT";
-                                        $statusStr = !empty($status) ? " - <strong>" . implode(", ", $status) . "</strong>" : "";
-                                        echo "<br>$letter ($idx): $opt$statusStr";
-                                    }
-                                @endphp
+                                @if($answer['is_correct'])
+                                    <span class="badge bg-success-subtle text-success px-2 py-1">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Correct
+                                    </span>
+                                @else
+                                    <span class="badge bg-danger-subtle text-danger px-2 py-1">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Incorrect
+                                    </span>
+                                @endif
                             </div>
-                            @endif
                             
-                            @foreach($optionsArray as $index => $option)
-                                @php
-                                    // Determine if this option is correct by index
-                                    $isCorrectOption = in_array($index, $correctLetterIndices);
+                            <!-- Question text -->
+                            <div class="question-text mb-3">
+                                <p>{{ $answer['question']['text'] }}</p>
+                            </div>
+                            
+                            <!-- Options list -->
+                            <div class="question-options">
+                                @foreach($answer['options'] as $optIndex => $option)
+                                <div class="question-option
+                                    {{ $option['is_selected'] && !$option['is_correct'] ? 'marked-incorrect' : '' }} 
+                                    {{ $option['is_correct'] ? 'correct-answer' : '' }}">
                                     
-                                    // Determine if this option was selected by the student by index
-                                    $isSelectedOption = ($selectedLetterIndex !== null && $selectedLetterIndex === $index);
-                                @endphp
-                                
-                                <!-- Display each option with appropriate styling -->
-                                <div class="option p-2 mb-2 rounded d-flex align-items-center
-                                    {{ $isSelectedOption ? 'selected-option' : '' }}
-                                    {{ $isCorrectOption ? 'correct-option' : '' }}
-                                    {{ $isSelectedOption && !$isCorrectOption ? 'incorrect-option' : '' }}">
+                                    <div class="option-indicator">
+                                        <span class="option-letter">{{ chr(65 + $optIndex) }}</span>
+                                    </div>
                                     
-                                    <!-- Option indicator icon -->
-                                    <div class="option-indicator me-2">
-                                        @if($isSelectedOption && $isCorrectOption)
-                                            <!-- Student selected correct answer -->
-                                            <i class="bi bi-check-circle-fill text-success"></i>
-                                        @elseif($isSelectedOption && !$isCorrectOption)
-                                            <!-- Student selected wrong answer -->
-                                            <i class="bi bi-x-circle-fill text-danger"></i>
-                                        @elseif($isCorrectOption && !$isSelectedOption)
-                                            <!-- This is the correct answer student didn't select -->
-                                            <i class="bi bi-check-circle text-success"></i>
-                                        @else
-                                            <!-- Unselected option -->
-                                            <i class="bi bi-circle"></i>
+                                    <div class="option-text">
+                                        {{ $option['text'] }}
+                                    </div>
+                                    
+                                    @if($option['is_selected'] && !$option['is_correct'])
+                                        <div class="marked-label">
+                                            <span class="badge bg-danger">Incorrect</span>
+                                        </div>
                                         @endif
-                                    </div>
                                     
-                                    <!-- Option text -->
-                                    <div class="option-text flex-grow-1">
-                                    {{ $option }}
+                                    @if($option['is_correct'])
+                                        <div class="correct-label">
+                                            <span class="badge bg-success">Correct answer</span>
                                     </div>
-                                    
-                                    <!-- Clear labels for student's answer and correct answer -->
-                                    <div class="ms-2">
-                                        @if($isSelectedOption && !$isCorrectOption)
-                                            <!-- Student's incorrect answer -->
-                                            <span class="badge bg-danger">Your Answer (Incorrect)</span>
-                                        @elseif($isSelectedOption && $isCorrectOption)
-                                            <!-- Student's correct answer -->
-                                            <span class="badge bg-success">Your Answer (Correct)</span>
-                                        @elseif($isCorrectOption && !$isSelectedOption)
-                                            <!-- The correct answer student didn't choose -->
-                                            <span class="badge bg-success">Correct Answer</span>
-                                        @endif
-                                    </div>
+                                    @endif
                                 </div>
                             @endforeach
+                            </div>
 
-                            <!-- Add a note if no answer was selected -->
-                            @if(!$selectedOption && !$answer->is_correct)
-                                <div class="alert alert-warning mt-2">
-                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                                    <strong>Note:</strong> You didn't select an answer for this question. The correct answer is highlighted above.
+                            <!-- Explanation if present -->
+                            @if(!empty($answer['question']['explanation']))
+                                <div class="explanation p-2 mt-3">
+                                    <div class="fw-bold mb-1">Explanation:</div>
+                                    <div>{{ $answer['question']['explanation'] }}</div>
                                 </div>
                             @endif
                         </div>
-
-                        @if($answer->question->explanation)
-                            <div class="explanation mt-3 p-2 border-top">
-                                <strong>Explanation:</strong>
-                                <p class="mb-0">{{ $answer->question->explanation }}</p>
-                            </div>
-                        @endif
-                        
-                        @if($answer->is_marked_for_review ?? false)
-                            <div class="mt-2">
-                                <span class="badge bg-warning">Marked for Review</span>
-                            </div>
-                        @endif
                     </div>
                 @endforeach
+                
+                <!-- Empty state if no answers -->
+                @if($result->formattedResponses->isEmpty())
+                    <div class="p-4 text-center">
+                        <div class="text-muted">No answers available for this test.</div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
     
     <style>
-        .selected-option {
-            background-color: rgba(0, 0, 0, 0.05);
+        /* Question block styling */
+        .question-block {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .question-text {
+            border-radius: 8px;
+        }
+        
+        .question-text h5 {
+            font-size: 1.1rem;
             font-weight: 500;
         }
         
-        .correct-option {
-            border-left: 4px solid #28a745;
-        }
-        
-        .incorrect-option {
-            border-left: 4px solid #dc3545;
-            background-color: rgba(220, 53, 69, 0.1);
-        }
-        
-        /* Enhance the appearance of correct answers when displayed alongside incorrect answers */
-        .question-block:not(.correct-question) .correct-option {
-            border: 1px solid #28a745;
-            background-color: rgba(40, 167, 69, 0.1);
-            position: relative;
-        }
-        
-        /* Add a subtle indicator to make it super clear */
-        .question-block:not(.correct-question) .correct-option::after {
-            content: "✓";
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            color: #28a745;
-            font-weight: bold;
-        }
-        
+        /* Mobile-style option styling */
         .option {
-            transition: all 0.2s;
-            border: 1px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.15s;
+            border: 1px solid #dee2e6;
+            background-color: white;
+            position: relative;
+            border-radius: 4px;
+            overflow: hidden;
         }
         
-        .option:hover {
-            background-color: rgba(0, 0, 0, 0.03);
+        .option-correct {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
         }
         
-        .score-badge {
-            font-size: 1.1rem;
+        .option-incorrect {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .option-letter {
+            font-weight: bold;
+            color: #495057;
+            min-width: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        
+        .option-text {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        
+        /* Clean mobile design - more minimal */
+        .options-list {
+            padding: 0.5rem 0;
+        }
+        
+        /* Question status badges */
+        .question-status {
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .question-correct {
+            background-color: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+        
+        .question-incorrect {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
+        
+        /* Icons */
+        .bi-check-circle-fill,
+        .bi-x-circle-fill,
+        .bi-check-circle {
+            font-size: 1.25rem;
         }
 
         /* Make cards clickable */
@@ -394,78 +331,187 @@
         
         .stat-card.active {
             background-color: rgba(0,0,0,0.05);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        /* Explanation styling */
+        .explanation {
+            background-color: #fff3cd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .question-option {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        /* User marked this option but it's incorrect - red */
+        .question-option.marked-incorrect {
+            background-color: #ffebeb;
+            color: #e04551;
+            border: 2px solid #e04551;
+            border-left: 5px solid #e04551;
+        }
+        
+        /* Add the badge style for correct/incorrect */
+        .question-option.correct-answer .correct-label,
+        .question-option.marked-incorrect .marked-label {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        /* Style the option letter for incorrect/correct to match screenshot */
+        .question-option.marked-incorrect .option-letter,
+        .question-option.correct-answer .option-letter {
+            background-color: white;
+            color: #333;
+        }
+
+        .marked-label .badge {
+            font-weight: normal;
+            background: none;
+            color: white;
+        }
+
+        /* This option is the correct answer - green */
+        .question-option.correct-answer {
+            background-color: #e8fff0;
+            color: #28a745;
+            border: 2px solid #28a745;
+            border-left: 5px solid #28a745;
+        }
+        
+        .question-option.marked-incorrect .option-text {
+            color: #e04551;
+            font-weight: 500;
+        }
+        
+        .question-option.correct-answer .option-text {
+            color: #28a745;
+            font-weight: 500;
+        }
+
+        .marked-label {
+            position: absolute;
+            right: 10px;
+        }
+
+        .correct-label {
+            position: absolute;
+            right: 10px;
+        }
+        
+        .marked-label .badge {
+            font-weight: normal;
+            background: none;
+            color: white;
+        }
+
+        /* Markers for correct/incorrect selections */
+        .option-marker-circle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            margin-right: 3px;
+            border-radius: 50%;
+        }
+        
+        .correct-marker {
+            color: #28a745;
+        }
+        
+        .incorrect-marker {
+            color: #dc3545;
+        }
+
+        .option-status {
+            margin-left: 10px;
+            font-size: 18px;
+        }
+
+        .status-icon {
+            display: inline-flex;
+        }
+
+        .option-indicator {
+            display: flex;
+            align-items: center;
+            margin-right: 12px;
+            min-width: 80px;
+        }
+        
+        .option-markers {
+            display: flex;
+            align-items: center;
+            margin-left: 5px;
+        }
+        
+        .option-text {
+            flex: 1;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+        
+        .option-status {
+            margin-left: 10px;
+            font-size: 18px;
+        }
+
+        /* Badge styles */
+        .question-option.correct-answer .badge {
+            background-color: transparent;
+            color: white;
+            font-weight: 500;
+            border-radius: 3px;
+        }
+        
+        .question-option.marked-incorrect .badge {
+            background-color: transparent;
+            color: white;
+            font-weight: 500;
+            border-radius: 3px;
         }
     </style>
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Get all filter elements
-            const allBtn = document.getElementById('show-all-btn');
-            const correctBtn = document.getElementById('show-correct-btn');
-            const incorrectBtn = document.getElementById('show-incorrect-btn');
-            const correctCard = document.getElementById('correct-card');
-            const incorrectCard = document.getElementById('incorrect-card');
-            const filterStatus = document.getElementById('filter-status');
+            // Filter questions based on correctness
+            const filterButtons = document.querySelectorAll('[data-filter]');
+            const questionItems = document.querySelectorAll('.question-item');
             
-            // Get all question items
-            const allQuestions = document.querySelectorAll('.question-item');
-            const correctQuestions = document.querySelectorAll('.correct-question');
-            const incorrectQuestions = document.querySelectorAll('.incorrect-question');
-            
-            // Function to update active button state
-            function updateActiveButton(activeBtn) {
-                [allBtn, correctBtn, incorrectBtn].forEach(btn => {
-                    btn.classList.remove('active');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active state
+                    filterButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const filter = this.getAttribute('data-filter');
+                    
+                    questionItems.forEach(item => {
+                        if (filter === 'all') {
+                            item.style.display = 'block';
+                        } else if (filter === 'correct' && item.classList.contains('correct-question')) {
+                            item.style.display = 'block';
+                        } else if (filter === 'incorrect' && item.classList.contains('incorrect-question')) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
                 });
-                activeBtn.classList.add('active');
-            }
-            
-            // Function to update active card state
-            function updateActiveCard(activeCard) {
-                [correctCard, incorrectCard].forEach(card => {
-                    card.classList.remove('active');
-                });
-                if (activeCard) {
-                    activeCard.classList.add('active');
-                }
-            }
-            
-            // Show all questions
-            function showAllQuestions() {
-                allQuestions.forEach(q => q.style.display = '');
-                updateActiveButton(allBtn);
-                updateActiveCard(null);
-                filterStatus.textContent = 'Showing All Questions';
-                filterStatus.className = 'badge bg-secondary px-3 py-2';
-            }
-            
-            // Show only correct questions
-            function showCorrectQuestions() {
-                allQuestions.forEach(q => q.style.display = 'none');
-                correctQuestions.forEach(q => q.style.display = '');
-                updateActiveButton(correctBtn);
-                updateActiveCard(correctCard);
-                filterStatus.textContent = 'Showing Correct Answers Only';
-                filterStatus.className = 'badge bg-success px-3 py-2';
-            }
-            
-            // Show only incorrect questions
-            function showIncorrectQuestions() {
-                allQuestions.forEach(q => q.style.display = 'none');
-                incorrectQuestions.forEach(q => q.style.display = '');
-                updateActiveButton(incorrectBtn);
-                updateActiveCard(incorrectCard);
-                filterStatus.textContent = 'Showing Incorrect Answers Only';
-                filterStatus.className = 'badge bg-danger px-3 py-2';
-            }
-            
-            // Add event listeners
-            allBtn.addEventListener('click', showAllQuestions);
-            correctBtn.addEventListener('click', showCorrectQuestions);
-            incorrectBtn.addEventListener('click', showIncorrectQuestions);
-            correctCard.addEventListener('click', showCorrectQuestions);
-            incorrectCard.addEventListener('click', showIncorrectQuestions);
+            });
         });
     </script>
+</div>
 </x-student-layout> 

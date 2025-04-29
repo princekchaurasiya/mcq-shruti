@@ -76,7 +76,7 @@
                                 <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
                                     Total Tests</div>
                                 <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                    {{ App\Models\McqTest::count() }}
+                                    {{ App\Models\MCQTest::count() }}
                                 </div>
                             </div>
                             <div class="col-auto">
@@ -93,12 +93,13 @@
             <!-- Recent Teachers -->
             <div class="col-lg-6 mb-4">
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h6 class="m-0 font-weight-bold text-primary">Recent Teachers</h6>
+                        <a href="{{ route('teachers.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                     <div class="card-body">
                         <div class="list-group">
-                            @foreach(App\Models\Teacher::with('user', 'subject')->latest()->take(5)->get() as $teacher)
+                            @forelse($recentTeachers as $teacher)
                                 <div class="list-group-item">
                                     <div class="d-flex w-100 justify-content-between">
                                         <h6 class="mb-1">{{ $teacher->user->name ?? 'N/A' }}</h6>
@@ -107,7 +108,15 @@
                                     <p class="mb-1">Subject: {{ $teacher->subject->name ?? 'Not Assigned' }}</p>
                                     <small class="text-muted">Experience: {{ $teacher->experience_years }} years</small>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="text-center py-4">
+                                    <p class="text-muted">No teachers found in the system.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-center py-3">
+                            {{ $recentTeachers->appends(['students_page' => request()->students_page, 'tests_page' => request()->tests_page])->links() }}
                         </div>
                     </div>
                 </div>
@@ -116,12 +125,13 @@
             <!-- Recent Students -->
             <div class="col-lg-6 mb-4">
                 <div class="card shadow mb-4">
-                    <div class="card-header py-3">
+                    <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h6 class="m-0 font-weight-bold text-primary">Recent Students</h6>
+                        <a href="{{ route('students.index') }}" class="btn btn-sm btn-outline-primary">View All</a>
                     </div>
                     <div class="card-body">
                         <div class="list-group">
-                            @foreach(App\Models\Student::with('user')->latest()->take(5)->get() as $student)
+                            @forelse($recentStudents as $student)
                                 <div class="list-group-item">
                                     <div class="d-flex w-100 justify-content-between">
                                         <h6 class="mb-1">{{ $student->user->name ?? 'N/A' }}</h6>
@@ -130,7 +140,15 @@
                                     <p class="mb-1">Roll Number: {{ $student->roll_number }}</p>
                                     <small class="text-muted">Batch: {{ $student->batch }}</small>
                                 </div>
-                            @endforeach
+                            @empty
+                                <div class="text-center py-4">
+                                    <p class="text-muted">No students found in the system.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                        <!-- Pagination -->
+                        <div class="d-flex justify-content-center py-3">
+                            {{ $recentStudents->appends(['teachers_page' => request()->teachers_page, 'tests_page' => request()->tests_page])->links() }}
                         </div>
                     </div>
                 </div>
@@ -143,15 +161,9 @@
                 <div class="card shadow mb-4">
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h6 class="m-0 font-weight-bold text-primary">Recent Tests</h6>
+                        <a href="{{ route('mcq-tests.index') }}" class="btn btn-sm btn-outline-primary">View All Tests</a>
                     </div>
                     <div class="card-body">
-                        @php
-                            $recentTests = App\Models\MCQTest::with(['teacher.user', 'subject'])
-                                ->latest()
-                                ->take(10)
-                                ->get();
-                        @endphp
-                        
                         @if($recentTests->isEmpty())
                             <div class="text-center py-4">
                                 <p class="text-muted">No tests found in the system.</p>
@@ -238,6 +250,10 @@
                                         @endforeach
                                     </tbody>
                                 </table>
+                            </div>
+                            <!-- Pagination -->
+                            <div class="d-flex justify-content-center py-3">
+                                {{ $recentTests->appends(['teachers_page' => request()->teachers_page, 'students_page' => request()->students_page])->links() }}
                             </div>
                         @endif
                     </div>
