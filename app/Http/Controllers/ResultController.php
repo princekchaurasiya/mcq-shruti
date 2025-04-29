@@ -47,18 +47,47 @@ class ResultController extends Controller
         
         $result->mcqTest->setRelation('questions', $questions);
         
-        // Use the formatted responses from the model attribute
-        $processedAnswers = $result->formatted_responses;
-        
-        \Log::info('Final processed answers', [
-            'count' => $processedAnswers->count(),
-            'first_answer' => $processedAnswers->first()
-        ]);
-        
-        return view('student.results.show', [
-            'result' => $result,
-            'answers' => $processedAnswers
-        ]);
+        // Use the formatted responses from the model attribute - add try/catch for safety
+        try {
+            $processedAnswers = $result->formatted_responses;
+            
+            \Log::info('Final processed answers', [
+                'count' => $processedAnswers->count(),
+                'first_answer' => $processedAnswers->first()
+            ]);
+            
+            return view('student.results.show', [
+                'result' => $result,
+                'answers' => $processedAnswers
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error processing formatted responses', [
+                'result_id' => $result->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Create a simple fallback for answers if formatted_responses fails
+            $fallbackAnswers = collect($result->responses)->map(function($response) {
+                return [
+                    'question' => [
+                        'text' => $response->question ? $response->question->question_text : 'Question text unavailable',
+                        'explanation' => $response->question ? ($response->question->explanation ?? null) : null
+                    ],
+                    'options' => [],
+                    'is_answered' => !empty($response->selected_option),
+                    'is_correct' => $response->is_correct,
+                    'selected_options' => [],
+                    'correct_options' => []
+                ];
+            });
+            
+            return view('student.results.show', [
+                'result' => $result,
+                'answers' => $fallbackAnswers,
+                'error_message' => 'There was an issue processing some test data. Basic results are shown below.'
+            ]);
+        }
     }
 
     /**

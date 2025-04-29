@@ -48,9 +48,9 @@ class UserSeeder extends Seeder
 
         // Create Teacher User
         $teacherUser = User::firstOrCreate(
-            ['email' => 'teacher@example.com'],
+            ['email' => 'prince@example.com'],
             [
-                'name' => 'Teacher User',
+                'name' => 'Prince',
                 'password' => Hash::make('password'),
                 'role' => 'teacher',
             ]
@@ -68,9 +68,9 @@ class UserSeeder extends Seeder
 
         // Create Student User
         $studentUser = User::firstOrCreate(
-            ['email' => 'student@example.com'],
+            ['email' => 'shruti@example.com'],
             [
-                'name' => 'Student User',
+                'name' => 'Shruti',
                 'password' => Hash::make('password'),
                 'role' => 'student',
             ]

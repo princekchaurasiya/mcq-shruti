@@ -54,7 +54,7 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => ['single', 'teacher', 'student', 'admin', 'auth', 'system'],
+            'channels' => ['single'],
             'ignore_exceptions' => false,
         ],
 
@@ -65,51 +65,10 @@ return [
             'replace_placeholders' => true,
         ],
 
-        'teacher' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/teacher.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
-        'student' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/student.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
-        'admin' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/admin.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
-        'auth' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/auth.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
-        'system' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/system.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
         'daily' => [
-            'driver' => 'daily',
+            'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
-            'days' => env('LOG_DAILY_DAYS', 14),
             'replace_placeholders' => true,
         ],
 

@@ -462,7 +462,7 @@ class MCQTestController extends BaseController
             
             // Check if user has reached maximum attempts
             $attemptsCount = $mcq_test->getAttemptsCountByUser(auth()->user());
-            $maxAttempts = 5; // Maximum allowed attempts
+            $maxAttempts = 10; // Maximum allowed attempts
             
             if ($attemptsCount >= $maxAttempts) {
                 Log::warning('User attempted to exceed maximum attempts for test', [
@@ -642,7 +642,7 @@ class MCQTestController extends BaseController
             ]);
             
             return redirect()
-                ->route('results.show', $attempt->id)
+                ->route('student.results.show', $attempt->id)
                 ->with('success', 'Test submitted successfully!');
                 
         } catch (Exception $e) {

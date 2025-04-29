@@ -106,9 +106,23 @@ class TestAttempt extends Model
                 $isSelected = in_array($index, $selectedOption);
                 $isCorrect = in_array($index, $correctOption);
                 
+                // Convert string indices to integers if needed
+                $letterIndex = $index;
+                if (is_string($letterIndex) && is_numeric($letterIndex)) {
+                    $letterIndex = (int)$letterIndex;
+                }
+                
+                // Make sure we have a valid integer for chr()
+                $letter = 'X'; // Default letter if we can't calculate
+                if (is_int($letterIndex) && $letterIndex >= 0 && $letterIndex <= 25) {
+                    $letter = strtoupper(chr(97 + $letterIndex));
+                } elseif (is_string($letterIndex) && strlen($letterIndex) == 1) {
+                    $letter = strtoupper($letterIndex);
+                }
+                
                 $processedOptions[] = [
-                    'text' => is_string($optionText) ? $optionText : "Option " . strtoupper(chr(97 + $index)),
-                    'letter' => strtoupper(chr(97 + $index)),
+                    'text' => is_string($optionText) ? $optionText : "Option " . $letter,
+                    'letter' => $letter,
                     'is_selected' => $isSelected,
                     'is_correct' => $isCorrect
                 ];
@@ -117,7 +131,7 @@ class TestAttempt extends Model
             // If we still have no options, create dummies
             if (empty($processedOptions)) {
                 for ($i = 0; $i < 4; $i++) {
-                    $letter = strtoupper(chr(97 + $i));
+                    $letter = strtoupper(chr(97 + $i)); // This is safe since $i is definitely an int
                     $processedOptions[] = [
                         'text' => "Option {$letter}",
                         'letter' => $letter,
@@ -144,16 +158,68 @@ class TestAttempt extends Model
                 'options' => $processedOptions,
                 'is_answered' => !empty($selectedOption),
                 'is_correct' => $response->is_correct,
-                'selected_options' => array_map(function($idx) {
-                    // Ensure $idx is an integer
-                    $idx = intval($idx);
-                    return strtoupper(chr(97 + $idx));
-                }, $selectedOption),
-                'correct_options' => array_map(function($idx) {
-                    // Ensure $idx is an integer
-                    $idx = intval($idx);
-                    return strtoupper(chr(97 + $idx));
-                }, $correctOption)
+                'selected_options' => collect($selectedOption)->map(function($idx) {
+                    // Log for debugging
+                    \Log::info('Processing selected option', ['index' => $idx, 'type' => gettype($idx)]);
+                    
+                    // If it's already a letter (a, b, c, d)
+                    if (is_string($idx) && preg_match('/^[a-dA-D]$/', $idx)) {
+                        return strtoupper($idx);
+                    }
+                    
+                    // Otherwise, try to determine the appropriate letter
+                    try {
+                        // Convert to integer safely
+                        if (is_string($idx) && is_numeric($idx)) {
+                            $idx = intval($idx);
+                        }
+                        
+                        // If it's an integer in the range 0-25, convert to letter
+                        if (is_int($idx) && $idx >= 0 && $idx <= 25) {
+                            return strtoupper(chr(97 + $idx));
+                        }
+                        
+                        // Otherwise, just return as is (uppercase if string)
+                        return is_string($idx) ? strtoupper($idx) : (string)$idx;
+                    } catch (\Exception $e) {
+                        \Log::error('Error processing option index', [
+                            'index' => $idx, 
+                            'error' => $e->getMessage()
+                        ]);
+                        return 'ERR';
+                    }
+                })->toArray(),
+                'correct_options' => collect($correctOption)->map(function($idx) {
+                    // Log for debugging
+                    \Log::info('Processing correct option', ['index' => $idx, 'type' => gettype($idx)]);
+                    
+                    // If it's already a letter (a, b, c, d)
+                    if (is_string($idx) && preg_match('/^[a-dA-D]$/', $idx)) {
+                        return strtoupper($idx);
+                    }
+                    
+                    // Otherwise, try to determine the appropriate letter
+                    try {
+                        // Convert to integer safely
+                        if (is_string($idx) && is_numeric($idx)) {
+                            $idx = intval($idx);
+                        }
+                        
+                        // If it's an integer in the range 0-25, convert to letter
+                        if (is_int($idx) && $idx >= 0 && $idx <= 25) {
+                            return strtoupper(chr(97 + $idx));
+                        }
+                        
+                        // Otherwise, just return as is (uppercase if string)
+                        return is_string($idx) ? strtoupper($idx) : (string)$idx;
+                    } catch (\Exception $e) {
+                        \Log::error('Error processing option index', [
+                            'index' => $idx, 
+                            'error' => $e->getMessage()
+                        ]);
+                        return 'ERR';
+                    }
+                })->toArray()
             ]);
         }
         
